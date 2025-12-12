@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
-import 'package:intl/intl.dart';
-
-final formatter = DateFormat.yMd();
+import 'package:expense_tracker/utils/formatters.dart';
 
 // This object generates unique IDs for us
 const uuid = Uuid();
@@ -35,6 +33,6 @@ class Expense {
 
   // A helper to format the date nicely
   String get formattedDate {
-    return formatter.format(date);
+    return dateFormatter.format(date);
   }
 }

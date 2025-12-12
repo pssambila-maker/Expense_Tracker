@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:expense_tracker/models/expense.dart';
-import 'package:expense_tracker/chart.dart'; 
-import 'package:expense_tracker/database_helper.dart'; // <--- Import the Helper!
+import 'package:expense_tracker/chart.dart';
+import 'package:expense_tracker/database_helper.dart';
 import 'new_expense.dart';
 
 // 1. Light Mode Seed (Purple) 🟣
@@ -75,50 +75,114 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  // Start with an empty list (we will load data in a second!)
-  List<Expense> _registeredExpenses = []; 
-  var _isLoading = true; // To show a spinner while loading
+  List<Expense> _registeredExpenses = [];
+  var _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadExpenses(); // <--- Trigger the load when app starts
+    _loadExpenses();
   }
 
-  // 1. Load Data from DB 📤
+  // 1. Load Data from DB with error handling 📤
   void _loadExpenses() async {
-    final data = await DatabaseHelper.loadExpenses();
-    setState(() {
-      _registeredExpenses = data;
-      _isLoading = false;
-    });
-  }
-
-  // 2. Add to DB 📥
-  void _addExpense(Expense expense) async {
-    await DatabaseHelper.addExpense(expense); // Save to disk
-    setState(() {
-      _registeredExpenses.add(expense); // Update UI
-    });
-  }
-
-  // 3. Delete from DB 🗑️
-  void _removeExpense(Expense expense) async {
-    await DatabaseHelper.deleteExpense(expense.id); // Delete from disk
-    setState(() {
-      _registeredExpenses.remove(expense); // Update UI
-    });
-    
-    // Optional: Add Undo logic here later if we want!
-  }
-
-  double get _totalExpenses {
-    double sum = 0;
-    for (final expense in _registeredExpenses) {
-      sum += expense.amount;
+    try {
+      final data = await DatabaseHelper.loadExpenses();
+      setState(() {
+        _registeredExpenses = data;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      if (mounted) {
+        _showErrorSnackBar('Failed to load expenses: ${e.toString()}');
+      }
     }
-    return sum;
   }
+
+  // 2. Add to DB with error handling 📥
+  void _addExpense(Expense expense) async {
+    try {
+      await DatabaseHelper.addExpense(expense);
+      setState(() {
+        _registeredExpenses.add(expense);
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Expense added successfully!'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        _showErrorSnackBar('Failed to add expense: ${e.toString()}');
+      }
+    }
+  }
+
+  // 3. Delete from DB with undo functionality 🗑️
+  void _removeExpense(Expense expense) async {
+    final expenseIndex = _registeredExpenses.indexOf(expense);
+
+    setState(() {
+      _registeredExpenses.remove(expense);
+    });
+
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Expense deleted'),
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () {
+            setState(() {
+              _registeredExpenses.insert(expenseIndex, expense);
+            });
+          },
+        ),
+      ),
+    );
+
+    // Wait for undo period before actually deleting from database
+    await Future.delayed(const Duration(seconds: 4));
+
+    // Only delete if the expense is still removed from the list
+    if (!_registeredExpenses.contains(expense)) {
+      try {
+        await DatabaseHelper.deleteExpense(expense.id);
+      } catch (e) {
+        if (mounted) {
+          _showErrorSnackBar('Failed to delete expense: ${e.toString()}');
+          // Re-add expense if deletion failed
+          setState(() {
+            _registeredExpenses.insert(expenseIndex, expense);
+          });
+        }
+      }
+    }
+  }
+
+  // Helper method to show error messages
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 5),
+      ),
+    );
+  }
+
+  // Calculate total using fold() for cleaner code
+  double get _totalExpenses => _registeredExpenses.fold(
+    0.0,
+    (sum, expense) => sum + expense.amount,
+  );
 
   void _openAddExpenseOverlay() {
     showModalBottomSheet(
@@ -130,12 +194,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Show a loading spinner if we are still fetching data
     Widget mainContent = const Center(child: CircularProgressIndicator());
 
     if (!_isLoading) {
       if (_registeredExpenses.isEmpty) {
-        mainContent = const Center(child: Text('No expenses found. Start adding some!'));
+        mainContent = const Center(
+          child: Text(
+            'No expenses found. Start adding some!',
+            style: TextStyle(fontSize: 16),
+          ),
+        );
       } else {
         mainContent = Column(
           children: [
@@ -153,19 +221,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Expanded(
               child: ListView.builder(
                 itemCount: _registeredExpenses.length,
-                itemBuilder: (ctx, index) => Dismissible(
-                  key: ValueKey(_registeredExpenses[index].id),
-                  onDismissed: (direction) {
-                    _removeExpense(_registeredExpenses[index]);
-                  },
-                  child: ListTile(
-                    leading: Icon(categoryIcons[_registeredExpenses[index].category]),
-                    title: Text(_registeredExpenses[index].title),
-                    trailing: Text(
-                      '\$${_registeredExpenses[index].amount.toStringAsFixed(2)}',
+                itemBuilder: (ctx, index) {
+                  final expense = _registeredExpenses[index];
+                  return Dismissible(
+                    key: ValueKey(expense.id),
+                    background: Container(
+                      color: Theme.of(context).colorScheme.error.withOpacity(0.75),
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: 20),
+                      child: const Icon(
+                        Icons.delete,
+                        color: Colors.white,
+                        size: 40,
+                      ),
                     ),
-                  ),
-                ),
+                    direction: DismissDirection.endToStart,
+                    onDismissed: (direction) {
+                      _removeExpense(expense);
+                    },
+                    child: Card(
+                      child: ListTile(
+                        leading: Icon(
+                          categoryIcons[expense.category],
+                          size: 32,
+                        ),
+                        title: Text(
+                          expense.title,
+                          style: const TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        subtitle: Text(
+                          '${expense.category.name.toUpperCase()} • ${expense.formattedDate}',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                          ),
+                        ),
+                        trailing: Text(
+                          '\$${expense.amount.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ],
@@ -175,7 +275,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Expense Tracker'),
+        title: const Text('WiseSteward'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       floatingActionButton: FloatingActionButton(

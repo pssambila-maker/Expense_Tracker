@@ -16,13 +16,10 @@ class ChartBucket {
   final Category category;
   final List<Expense> expenses;
 
-  double get totalExpenses {
-    double sum = 0;
-    for (final expense in expenses) {
-      sum += expense.amount;
-    }
-    return sum;
-  }
+  double get totalExpenses => expenses.fold(
+    0.0,
+    (sum, expense) => sum + expense.amount,
+  );
 }
 
 class Chart extends StatelessWidget {
@@ -39,15 +36,10 @@ class Chart extends StatelessWidget {
     ];
   }
 
-  double get maxTotalExpense {
-    double maxTotal = 0;
-    for (final bucket in buckets) {
-      if (bucket.totalExpenses > maxTotal) {
-        maxTotal = bucket.totalExpenses;
-      }
-    }
-    return maxTotal;
-  }
+  double get maxTotalExpense => buckets.fold(
+    0.0,
+    (max, bucket) => bucket.totalExpenses > max ? bucket.totalExpenses : max,
+  );
 
   @override
   Widget build(BuildContext context) {
