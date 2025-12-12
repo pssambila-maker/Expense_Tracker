@@ -3,9 +3,14 @@ import 'package:expense_tracker/models/expense.dart';
 import 'package:expense_tracker/utils/formatters.dart';
 
 class NewExpense extends StatefulWidget {
-  const NewExpense({super.key, required this.onAddExpense});
+  const NewExpense({
+    super.key,
+    required this.onSaveExpense,
+    this.expenseToEdit,
+  });
 
-  final void Function(Expense expense) onAddExpense;
+  final void Function(Expense expense) onSaveExpense;
+  final Expense? expenseToEdit; // Optional expense for editing
 
   @override
   State<NewExpense> createState() {
@@ -19,12 +24,24 @@ class _NewExpenseState extends State<NewExpense> {
   DateTime? _selectedDate;
   Category _selectedCategory = Category.leisure;
 
+  @override
+  void initState() {
+    super.initState();
+    // If editing, populate fields with existing data
+    if (widget.expenseToEdit != null) {
+      _titleController.text = widget.expenseToEdit!.title;
+      _amountController.text = widget.expenseToEdit!.amount.toString();
+      _selectedDate = widget.expenseToEdit!.date;
+      _selectedCategory = widget.expenseToEdit!.category;
+    }
+  }
+
   void _presentDatePicker() async {
     final now = DateTime.now();
     final firstDate = DateTime(now.year - 1, now.month, now.day);
     final pickedDate = await showDatePicker(
       context: context,
-      initialDate: now,
+      initialDate: _selectedDate ?? now,
       firstDate: firstDate,
       lastDate: now,
     );
@@ -60,8 +77,9 @@ class _NewExpenseState extends State<NewExpense> {
     }
 
     // 3. Success Logic (Save & Close) ✅
-    widget.onAddExpense(
+    widget.onSaveExpense(
       Expense(
+        id: widget.expenseToEdit?.id, // Use existing ID if editing
         title: _titleController.text,
         amount: enteredAmount,
         date: _selectedDate!,
@@ -81,6 +99,7 @@ class _NewExpenseState extends State<NewExpense> {
   @override
   Widget build(BuildContext context) {
     final keyboardSpace = MediaQuery.of(context).viewInsets.bottom;
+    final isEditing = widget.expenseToEdit != null;
 
     return SizedBox(
       height: double.infinity,
@@ -88,7 +107,17 @@ class _NewExpenseState extends State<NewExpense> {
         child: Padding(
           padding: EdgeInsets.fromLTRB(16, 16, 16, keyboardSpace + 16),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Title for the modal
+              Text(
+                isEditing ? 'Edit Expense' : 'New Expense',
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
               TextField(
                 controller: _titleController,
                 maxLength: 50,
@@ -114,10 +143,13 @@ class _NewExpenseState extends State<NewExpense> {
                       mainAxisAlignment: MainAxisAlignment.end,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Text(
-                          _selectedDate == null
-                              ? 'No Date Selected'
-                              : dateFormatter.format(_selectedDate!),
+                        Flexible(
+                          child: Text(
+                            _selectedDate == null
+                                ? 'No Date'
+                                : dateFormatter.format(_selectedDate!),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                         IconButton(
                           onPressed: _presentDatePicker,
@@ -161,7 +193,7 @@ class _NewExpenseState extends State<NewExpense> {
                   ),
                   ElevatedButton(
                     onPressed: _submitExpenseData,
-                    child: const Text('Save Expense'),
+                    child: Text(isEditing ? 'Update' : 'Save Expense'),
                   ),
                 ],
               ),

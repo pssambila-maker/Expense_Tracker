@@ -64,7 +64,27 @@ class DatabaseHelper {
     }
   }
 
-  // 4. Delete an Expense 🗑️
+  // 4. Update an Expense ✏️
+  static Future<void> updateExpense(Expense expense) async {
+    try {
+      final db = await _getDB();
+      await db.update(
+        'user_expenses',
+        {
+          'title': expense.title,
+          'amount': expense.amount,
+          'date': expense.date.toIso8601String(),
+          'category': expense.category.name,
+        },
+        where: 'id = ?',
+        whereArgs: [expense.id],
+      );
+    } catch (e) {
+      throw Exception('Failed to update expense: $e');
+    }
+  }
+
+  // 5. Delete an Expense 🗑️
   static Future<void> deleteExpense(String id) async {
     try {
       final db = await _getDB();
