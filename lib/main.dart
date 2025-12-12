@@ -77,11 +77,52 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   List<Expense> _registeredExpenses = [];
   var _isLoading = true;
+  var _showSwipeHint = true; // Track if we should show hint
 
   @override
   void initState() {
     super.initState();
     _loadExpenses();
+    _checkFirstTimeUser();
+  }
+
+  // Check if user has seen the swipe hint before
+  void _checkFirstTimeUser() async {
+    // In a real app, you'd use SharedPreferences
+    // For now, show hint on first expense add
+    await Future.delayed(const Duration(seconds: 2));
+    if (mounted && _registeredExpenses.isNotEmpty && _showSwipeHint) {
+      _showSwipeHintDialog();
+    }
+  }
+
+  void _showSwipeHintDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.swipe_left, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 8),
+            const Text('Quick Tip!'),
+          ],
+        ),
+        content: const Text(
+          'Swipe left on any expense to delete it. You\'ll have 4 seconds to undo!',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _showSwipeHint = false;
+              });
+              Navigator.pop(ctx);
+            },
+            child: const Text('Got it!'),
+          ),
+        ],
+      ),
+    );
   }
 
   // 1. Load Data from DB with error handling 📤
@@ -116,6 +157,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             duration: Duration(seconds: 2),
           ),
         );
+
+        // Show hint after first expense
+        if (_registeredExpenses.length == 1 && _showSwipeHint) {
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted) _showSwipeHintDialog();
+          });
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -198,69 +246,220 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     if (!_isLoading) {
       if (_registeredExpenses.isEmpty) {
-        mainContent = const Center(
-          child: Text(
-            'No expenses found. Start adding some!',
-            style: TextStyle(fontSize: 16),
+        mainContent = Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.receipt_long_outlined,
+                size: 80,
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'No expenses yet',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Tap the + button to add your first expense',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                ),
+              ),
+            ],
           ),
         );
       } else {
         mainContent = Column(
           children: [
-            Chart(expenses: _registeredExpenses),
-            Card(
-              margin: const EdgeInsets.all(20),
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Text(
-                  'Total Spent: \$${_totalExpenses.toStringAsFixed(2)}',
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            // Improved header with stats
+            Container(
+              margin: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Theme.of(context).colorScheme.primaryContainer,
+                    Theme.of(context).colorScheme.secondaryContainer,
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Total Spending',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.8),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '\$${_totalExpenses.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${_registeredExpenses.length} ${_registeredExpenses.length == 1 ? 'expense' : 'expenses'}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.7),
+                    ),
+                  ),
+                ],
               ),
             ),
+
+            // Chart
+            Chart(expenses: _registeredExpenses),
+
+            // Section header for expenses list
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Recent Expenses',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (_registeredExpenses.isNotEmpty)
+                    TextButton.icon(
+                      onPressed: _showSwipeHintDialog,
+                      icon: const Icon(Icons.help_outline, size: 16),
+                      label: const Text('Help'),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
+            // Expenses list with improved design
             Expanded(
               child: ListView.builder(
+                padding: const EdgeInsets.only(bottom: 80),
                 itemCount: _registeredExpenses.length,
                 itemBuilder: (ctx, index) {
                   final expense = _registeredExpenses[index];
                   return Dismissible(
                     key: ValueKey(expense.id),
                     background: Container(
-                      color: Theme.of(context).colorScheme.error.withOpacity(0.75),
+                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.error,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       alignment: Alignment.centerRight,
                       padding: const EdgeInsets.only(right: 20),
-                      child: const Icon(
-                        Icons.delete,
-                        color: Colors.white,
-                        size: 40,
+                      child: const Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.delete_outline,
+                            color: Colors.white,
+                            size: 32,
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Delete',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     direction: DismissDirection.endToStart,
+                    confirmDismiss: (direction) async {
+                      // Show a subtle animation hint
+                      return true;
+                    },
                     onDismissed: (direction) {
                       _removeExpense(expense);
                     },
-                    child: Card(
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardTheme.color,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                        ),
+                      ),
                       child: ListTile(
-                        leading: Icon(
-                          categoryIcons[expense.category],
-                          size: 32,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        leading: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            categoryIcons[expense.category],
+                            size: 28,
+                            color: Theme.of(context).colorScheme.onPrimaryContainer,
+                          ),
                         ),
                         title: Text(
                           expense.title,
-                          style: const TextStyle(fontWeight: FontWeight.w500),
-                        ),
-                        subtitle: Text(
-                          '${expense.category.name.toUpperCase()} • ${expense.formattedDate}',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                          ),
-                        ),
-                        trailing: Text(
-                          '\$${expense.amount.toStringAsFixed(2)}',
                           style: const TextStyle(
+                            fontWeight: FontWeight.w600,
                             fontSize: 16,
-                            fontWeight: FontWeight.bold,
                           ),
+                        ),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            '${expense.category.name.toUpperCase()} • ${expense.formattedDate}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            ),
+                          ),
+                        ),
+                        trailing: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              '\$${expense.amount.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Icon(
+                              Icons.chevron_left,
+                              size: 16,
+                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -277,10 +476,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: const Text('WiseSteward'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        elevation: 0,
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: _openAddExpenseOverlay,
-        child: const Icon(Icons.add),
+        icon: const Icon(Icons.add),
+        label: const Text('Add Expense'),
       ),
       body: mainContent,
     );
