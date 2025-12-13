@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:expense_tracker/chart_bar.dart'; // <--- Import the Bar!
+import 'package:expense_tracker/widgets/chart_bar.dart';
 import 'package:expense_tracker/models/expense.dart';
 
 class ChartBucket {
