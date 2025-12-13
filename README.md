@@ -1,12 +1,39 @@
 # WiseSteward - Advanced Expense Tracker
 
-A beautiful, feature-rich expense tracking app built with Flutter. Track, search, filter, and analyze your spending with an intuitive interface and powerful features.
+**Version 2.1.0** - A beautiful, feature-rich expense tracking app built with Flutter. Multi-screen navigation, powerful analytics, week views, and comprehensive expense management with an intuitive interface.
+
+📱 **[Download on Google Play](https://play.google.com/store)** | 📖 **[User Manual](USER_MANUAL.md)**
 
 ![Flutter](https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-07405E?style=for-the-badge&logo=sqlite&logoColor=white)
 
 ## ✨ Features
+
+### 🏠 Multi-Screen Navigation (NEW in v2.1.0)
+- **Dashboard**: Quick overview with today/week/month summaries
+- **Expenses**: Full expense management with search and filters
+- **Daily View**: Toggle between day and week views
+- **Reports**: Detailed monthly/yearly analytics
+- **Bottom Navigation**: Easy switching with state preservation
+- **Material Design 3**: Modern, beautiful interface
+
+### 📅 Daily & Week Views (NEW in v2.1.0)
+- **Day View**: Single day expense tracking with chart
+- **Week View**: Seven-day overview with expandable day cards
+- **Daily Averages**: Calculate average spending per day
+- **Today Highlighting**: Current day stands out visually
+- **Quick Navigation**: Previous/next buttons and date picker
+- **Smart Grouping**: Expenses automatically grouped by day
+
+### 📊 Enhanced Reports & Analytics (NEW in v2.1.0)
+- **Monthly Reports**: Detailed month-by-month analysis
+- **Yearly Reports**: Annual spending overview
+- **Top Category Card**: See your biggest spending category
+- **Category Breakdown**: Percentage and amount for each category
+- **Visual Progress Bars**: Easy-to-read spending distribution
+- **CSV Export**: Export monthly or yearly data
+- **Pull-to-Refresh**: Update data anytime
 
 ### 💰 Expense Management
 - **Add Expenses**: Quick and easy expense entry
@@ -15,18 +42,18 @@ A beautiful, feature-rich expense tracking app built with Flutter. Track, search
 - **Duplicate Expenses**: Long press to quickly duplicate recurring expenses
 - **Categories**: Organize into Food, Travel, Leisure, and Work
 
-### 🔍 Search & Filter
+### 🔍 Search & Filter (Enhanced in v2.1.0)
 - **Real-time Search**: Find expenses instantly by title
 - **Category Filters**: Beautiful filter chips for each category
 - **Combined Filtering**: Search and category filters work together
 - **Dynamic Totals**: See filtered amounts update live
 - **Smart Empty States**: Clear messaging when no results found
 
-### 📊 Analytics & Visualization
-- **Visual Charts**: Bar chart showing spending by category
+### 📈 Charts & Visualization
+- **Bar Charts**: Visual spending by category or date
+- **Progress Bars**: Category spending percentages
 - **Total Spending**: Large, clear display of totals
 - **Expense Count**: Track number of expenses
-- **Category Breakdown**: See spending distribution at a glance
 - **Filtered Analytics**: Charts update based on active filters
 
 ### 💾 Data Management
@@ -150,15 +177,20 @@ flutter run
 
 ```
 lib/
-├── main.dart                 # App entry, dashboard, search, filters
+├── main.dart                      # App entry & navigation shell
 ├── models/
-│   └── expense.dart          # Expense data model & enums
-├── utils/
-│   └── formatters.dart       # Shared date formatter
-├── chart.dart                # Spending chart visualization
-├── chart_bar.dart            # Individual chart bar component
-├── new_expense.dart          # Add/Edit expense form modal
-└── database_helper.dart      # SQLite CRUD operations
+│   └── expense.dart               # Expense data model & enums
+├── screens/
+│   ├── dashboard_screen.dart      # Overview with summaries
+│   ├── expenses_screen.dart       # Full expense management
+│   ├── daily_view_screen.dart     # Day/Week views
+│   └── reports_screen.dart        # Monthly/Yearly analytics
+├── widgets/
+│   ├── chart.dart                 # Spending chart visualization
+│   ├── chart_bar.dart             # Individual chart bar component
+│   └── new_expense.dart           # Add/Edit expense form modal
+└── utils/
+    └── database_helper.dart       # SQLite CRUD & date queries
 ```
 
 ## 🛠️ Tech Stack
@@ -298,7 +330,7 @@ Give a ⭐️ if this project helped you!
   - SQLite persistence
   - Dark mode support
 
-- **v2.0.0** (Feature Complete) - Current
+- **v2.0.0** (Feature Complete)
   - ✅ Edit expenses
   - ✅ Search functionality
   - ✅ Category filters
@@ -309,6 +341,18 @@ Give a ⭐️ if this project helped you!
   - ✅ Duplicate expenses
   - ✅ SharedPreferences
   - ✅ Enhanced UX
+
+- **v2.1.0** (Multi-Screen & Analytics) - Current
+  - ✅ Multi-screen navigation (Dashboard, Expenses, Daily, Reports)
+  - ✅ Week view with expandable day cards
+  - ✅ Enhanced Reports with category breakdown
+  - ✅ Visual progress bars and percentages
+  - ✅ Top category card
+  - ✅ Daily/Weekly/Monthly/Yearly analytics
+  - ✅ Improved search and filters
+  - ✅ State preservation across tabs
+  - ✅ Enhanced database with date-based queries
+  - ✅ Comprehensive user manual
 
 ## 💡 Tips & Tricks
 
